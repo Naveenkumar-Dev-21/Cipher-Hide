@@ -1,5 +1,16 @@
 import sys
 import os
+import sys
+import os
+import time
+import soundfile as sf
+import sys
+import os
+import time
+import soundfile as sf
+import numpy as np
+import cv2
+import stepic
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QPushButton, 
                            QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, 
                            QTabWidget, QFileDialog, QMessageBox, QGroupBox,
@@ -9,6 +20,7 @@ from PyQt5.QtCore import Qt, QSize, QPropertyAnimation, QEasingCurve, QThread, p
 from PyQt5.QtGui import QFont, QPixmap, QIcon, QColor, QPalette, QCursor, QImage
 from cryptography.fernet import Fernet
 from PIL import Image, UnidentifiedImageError
+import stepic  # For image steganography
 
 # Function to convert PIL Image to QPixmap
 def pil2pixmap(pil_image):
@@ -47,6 +59,111 @@ class SteganographyApp(QMainWindow):
         self.image_file_path = ""
         self.audio_file_path = ""
         self.video_file_path = ""
+        
+        # Set the global stylesheet
+        self.setStyleSheet("""
+            QMainWindow {
+                background-color: #0a0e17;
+                color: #e0e0e0;
+            }
+            
+            #titleFrame {
+                background-color: #1a1f2c;
+                border-radius: 8px;
+                padding: 10px;
+                margin-bottom: 5px;
+            }
+            
+            #titleLabel {
+                color: #00e5ff;
+                font-size: 36px;
+                font-weight: bold;
+                font-family: 'Orbitron', sans-serif;
+                letter-spacing: 2px;
+            }
+            
+            QPushButton {
+                background-color: #2196f3;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 8px 16px;
+                font-weight: bold;
+                font-size: 13px;
+            }
+            
+            QPushButton:hover {
+                background-color: #0d8bf2;
+                border: 2px solid #2196f3;
+            }
+            
+            QPushButton:pressed {
+                background-color: #0b7ad1;
+            }
+            
+            #actionButton {
+                background-color: #00bcd4;
+                font-size: 16px;
+                font-weight: bold;
+            }
+            
+            #actionButton:hover {
+                background-color: #00acc1;
+                border: 2px solid #00bcd4;
+            }
+            
+            #actionButton:pressed {
+                background-color: #0097a7;
+            }
+            
+            QLineEdit {
+                background-color: #1d2334;
+                border: 1px solid #2d3446;
+                border-radius: 4px;
+                padding: 8px;
+                color: #e0e0e0;
+                selection-background-color: #2196f3;
+            }
+            
+            QGroupBox {
+                border: 1px solid #2d3446;
+                border-radius: 4px;
+                margin-top: 1em;
+                padding-top: 10px;
+                font-weight: bold;
+                color: #e0e0e0;
+            }
+            
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px;
+            }
+            
+            QProgressBar {
+                border: 1px solid #2d3446;
+                border-radius: 4px;
+                background-color: #1d2334;
+                text-align: center;
+                color: white;
+            }
+            
+            QProgressBar::chunk {
+                background-color: #00e5ff;
+                width: 10px;
+                margin: 0px;
+            }
+            
+            QLabel {
+                color: #e0e0e0;
+                font-size: 14px;
+            }
+            
+            #statusBar {
+                background-color: #1a1f2c;
+                color: #7a8292;
+            }
+        """)
         
         self.init_ui()
         
@@ -157,10 +274,26 @@ class SteganographyApp(QMainWindow):
             
             QPushButton:hover {
                 background-color: #0d8bf2;
+                border: 2px solid #2196f3;
             }
             
             QPushButton:pressed {
                 background-color: #0b7ad1;
+            }
+            
+            #actionButton {
+                background-color: #00bcd4;
+                font-size: 16px;
+                font-weight: bold;
+            }
+            
+            #actionButton:hover {
+                background-color: #00acc1;
+                border: 2px solid #00bcd4;
+            }
+            
+            #actionButton:pressed {
+                background-color: #0097a7;
             }
             
             QLineEdit {
@@ -437,19 +570,7 @@ class SteganographyApp(QMainWindow):
         
         # Action button with glow effect
         encrypt_btn = QPushButton("Encrypt Text")
-        encrypt_btn.setObjectName("actionButton")
-        encrypt_btn.setMinimumHeight(50)
-        encrypt_btn.setStyleSheet("""
-            #actionButton {
-                background-color: #00bcd4;
-                font-size: 16px;
-                font-weight: bold;
-            }
-            #actionButton:hover {
-                background-color: #00acc1;
-                box-shadow: 0 0 10px #00bcd4;
-            }
-        """)
+        self.setup_button_style(encrypt_btn, is_action_button=True)
         encrypt_btn.clicked.connect(self.encrypt_text)
         content_layout.addWidget(encrypt_btn)
         
@@ -526,19 +647,7 @@ class SteganographyApp(QMainWindow):
         
         # Action button with glow effect
         decrypt_btn = QPushButton("Decrypt Text")
-        decrypt_btn.setObjectName("actionButton")
-        decrypt_btn.setMinimumHeight(50)
-        decrypt_btn.setStyleSheet("""
-            #actionButton {
-                background-color: #00bcd4;
-                font-size: 16px;
-                font-weight: bold;
-            }
-            #actionButton:hover {
-                background-color: #00acc1;
-                box-shadow: 0 0 10px #00bcd4;
-            }
-        """)
+        self.setup_button_style(decrypt_btn, is_action_button=True)
         decrypt_btn.clicked.connect(self.decrypt_text)
         decrypt_content_layout.addWidget(decrypt_btn)
         
@@ -719,19 +828,7 @@ class SteganographyApp(QMainWindow):
         
         # Action button
         hide_btn = QPushButton("Hide Message in Image")
-        hide_btn.setObjectName("actionButton")
-        hide_btn.setMinimumHeight(50)
-        hide_btn.setStyleSheet("""
-            #actionButton {
-                background-color: #00bcd4;
-                font-size: 16px;
-                font-weight: bold;
-            }
-            #actionButton:hover {
-                background-color: #00acc1;
-                box-shadow: 0 0 10px #00bcd4;
-            }
-        """)
+        self.setup_button_style(hide_btn, is_action_button=True)
         hide_btn.clicked.connect(self.hide_in_image)
         right_panel.addWidget(hide_btn)
         
@@ -838,19 +935,7 @@ class SteganographyApp(QMainWindow):
         
         # Action button
         reveal_btn = QPushButton("Reveal Hidden Message")
-        reveal_btn.setObjectName("actionButton")
-        reveal_btn.setMinimumHeight(50)
-        reveal_btn.setStyleSheet("""
-            #actionButton {
-                background-color: #00bcd4;
-                font-size: 16px;
-                font-weight: bold;
-            }
-            #actionButton:hover {
-                background-color: #00acc1;
-                box-shadow: 0 0 10px #00bcd4;
-            }
-        """)
+        self.setup_button_style(reveal_btn, is_action_button=True)
         reveal_btn.clicked.connect(self.unhide_from_image)
         decrypt_right_panel.addWidget(reveal_btn)
         
@@ -1102,19 +1187,7 @@ class SteganographyApp(QMainWindow):
         
         # Hide button with futuristic design
         hide_audio_btn = QPushButton("Hide Message in Audio")
-        hide_audio_btn.setObjectName("actionButton")
-        hide_audio_btn.setMinimumHeight(50)
-        hide_audio_btn.setStyleSheet("""
-            #actionButton {
-                background-color: #00bcd4;
-                font-size: 16px;
-                font-weight: bold;
-            }
-            #actionButton:hover {
-                background-color: #00acc1;
-                box-shadow: 0 0 10px #00bcd4;
-            }
-        """)
+        self.setup_button_style(hide_audio_btn, is_action_button=True)
         hide_audio_btn.clicked.connect(self.hide_in_audio)
         audio_content_layout.addWidget(hide_audio_btn)
         
@@ -1209,19 +1282,7 @@ class SteganographyApp(QMainWindow):
         
         # Extract button
         extract_audio_btn = QPushButton("Extract Hidden Message")
-        extract_audio_btn.setObjectName("actionButton")
-        extract_audio_btn.setMinimumHeight(50)
-        extract_audio_btn.setStyleSheet("""
-            #actionButton {
-                background-color: #00bcd4;
-                font-size: 16px;
-                font-weight: bold;
-            }
-            #actionButton:hover {
-                background-color: #00acc1;
-                box-shadow: 0 0 10px #00bcd4;
-            }
-        """)
+        self.setup_button_style(extract_audio_btn, is_action_button=True)
         extract_audio_btn.clicked.connect(self.unhide_from_audio)
         audio_decrypt_layout_inner.addWidget(extract_audio_btn)
         
@@ -1547,19 +1608,7 @@ class SteganographyApp(QMainWindow):
         
         # Action button with holographic effect
         hide_video_btn = QPushButton("Hide Message in Video")
-        hide_video_btn.setObjectName("actionButton")
-        hide_video_btn.setMinimumHeight(50)
-        hide_video_btn.setStyleSheet("""
-            #actionButton {
-                background-color: #00bcd4;
-                font-size: 16px;
-                font-weight: bold;
-            }
-            #actionButton:hover {
-                background-color: #00acc1;
-                box-shadow: 0 0 10px #00bcd4;
-            }
-        """)
+        self.setup_button_style(hide_video_btn, is_action_button=True)
         hide_video_btn.clicked.connect(self.hide_in_video)
         video_content_layout.addWidget(hide_video_btn)
         
@@ -1654,19 +1703,7 @@ class SteganographyApp(QMainWindow):
         
         # Extract button
         extract_video_btn = QPushButton("Extract Hidden Message")
-        extract_video_btn.setObjectName("actionButton")
-        extract_video_btn.setMinimumHeight(50)
-        extract_video_btn.setStyleSheet("""
-            #actionButton {
-                background-color: #00bcd4;
-                font-size: 16px;
-                font-weight: bold;
-            }
-            #actionButton:hover {
-                background-color: #00acc1;
-                box-shadow: 0 0 10px #00bcd4;
-            }
-        """)
+        self.setup_button_style(extract_video_btn, is_action_button=True)
         extract_video_btn.clicked.connect(self.unhide_from_video)
         video_decrypt_layout_inner.addWidget(extract_video_btn)
         
@@ -1844,6 +1881,44 @@ class SteganographyApp(QMainWindow):
             self.video_decrypt_progress.setFormat("Error")
             self.show_error_message(f"Error extracting message from video: {str(e)}")
 
+    def setup_button_style(self, button, is_action_button=False):
+        """Set up unified button styling"""
+        if is_action_button:
+            button.setObjectName("actionButton")
+            button.setMinimumHeight(50)
+            button.setStyleSheet("""
+                #actionButton {
+                    background-color: #00bcd4;
+                    font-size: 16px;
+                    font-weight: bold;
+                }
+                #actionButton:hover {
+                    background-color: #00acc1;
+                    border: 2px solid #00bcd4;
+                }
+                #actionButton:pressed {
+                    background-color: #0097a7;
+                }
+            """)
+        else:
+            button.setStyleSheet("""
+                QPushButton {
+                    background-color: #2196f3;
+                    color: white;
+                    border: none;
+                    border-radius: 4px;
+                    padding: 8px 16px;
+                    font-weight: bold;
+                    font-size: 13px;
+                }
+                QPushButton:hover {
+                    background-color: #0d8bf2;
+                    border: 2px solid #2196f3;
+                }
+                QPushButton:pressed {
+                    background-color: #0b7ad1;
+                }
+            """)
 
 # Main execution
 if __name__ == "__main__":
@@ -1859,4 +1934,4 @@ if __name__ == "__main__":
     window = SteganographyApp()
     window.show()
     
-    sys.exit(app.exec_()) 
+    sys.exit(app.exec_())
