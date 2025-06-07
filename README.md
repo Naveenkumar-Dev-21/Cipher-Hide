@@ -1,4 +1,4 @@
-# NexusCipher - Futuristic Steganography Tool
+# CipherHide - Futuristic Steganography Tool
 
 A modern, sleek steganography application built with PyQt5 that allows you to hide secret messages in various media types:
 
@@ -18,8 +18,8 @@ A modern, sleek steganography application built with PyQt5 that allows you to hi
 
 1. Clone this repository:
 ```
-git clone https://github.com/yourusername/nexuscipher.git
-cd nexuscipher
+git clone https://github.com/yourusername/Cipher-Hide.git
+cd Cipher-Hide
 ```
 
 2. Create a virtual environment (recommended):
