@@ -18,7 +18,7 @@ A modern, sleek steganography application built with PyQt5 that allows you to hi
 
 1. Clone this repository:
 ```
-git clone https://github.com/yourusername/Cipher-Hide.git
+git clone https://github.com/Naveenkumar-Dev-21/Cipher-Hide.git
 cd Cipher-Hide
 ```
 
@@ -70,7 +70,3 @@ Currently includes a demonstration of the concept.
 - Python 3.6+
 - PyQt5
 - Other dependencies in requirements.txt
-
-## License
-
-MIT License 
