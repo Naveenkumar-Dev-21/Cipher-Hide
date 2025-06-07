@@ -1,0 +1,8 @@
+PyQt5==5.15.6
+cryptography==36.0.2
+Pillow==9.0.1
+stepic==0.5.0
+soundfile==0.10.3.post1
+numpy==1.22.3
+opencv-python==4.5.5.64
+pycryptodome==3.14.1 
